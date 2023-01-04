@@ -1,5 +1,3 @@
-// import ObservableSlim from "https://cdn.skypack.dev/observable-slim@0.1.6";
-
 /** Sidebar where projects are listed */
 const $sidebar = document.querySelector(".projects__sidebar");
 /** Button to add a new project */
@@ -52,13 +50,18 @@ function toggleSidebar() {
 }
 
 class Project {
+  /**
+   * Create an instance of Project
+   * @param {number} n Incremental value for the id and the default name
+   * @param {Project=} project Data of the project if loaded
+   */
   constructor(n, project) {
     // project infos
     this.id = n;
     this.name = `New Project ${n}`;
     this.desc = "This is a description of a new project";
 
-    // If project already exist, fill all values
+    // If project already exists, fill all values
     project & Object.assign(this, project);
 
     // pieces infos
@@ -124,6 +127,7 @@ class Project {
 
   /**
    * Create a new piece and add it to the project
+   * @param {Piece=} p Object with all properties of the piece (used for loading of localStorage)
    * @returns {Piece}
    */
   addPiece(p) {
@@ -136,7 +140,7 @@ class Project {
 
   /**
    * Remove the piece with the given id from the project
-   * @param {number} id
+   * @param {number} id Id of the piece to remove
    */
   removePiece(id) {
     this.pieces = this.pieces.filter((p) => p.id !== id);
@@ -145,7 +149,7 @@ class Project {
 
   /**
    * It returns the last piece in the pieces array.
-   * @returns The last piece in the array.
+   * @returns {Piece=} The last piece in the array.
    */
   lastPiece() {
     return this.pieces.at(-1);
@@ -171,8 +175,7 @@ class Project {
    * Display the project.
    *
    * Set the current active project and display the project in the right side.
-   * The add the pieces of the project and finally add all events.
-   * @param {Project} p - The project object
+   * Then add the pieces of the project and finally add all events.
    */
   show() {
     this.setActive();
@@ -188,6 +191,10 @@ class Project {
     this.handleEvents($projectWrapper);
   }
 
+  /**
+   * Create all events for the project
+   * @param {HTMLElement} wrapper 
+   */
   handleEvents(wrapper) {
     const $btnToggleSidebar = wrapper.querySelector("#btn_toggleSidebar");
     const $btnRemove = wrapper.querySelector("#btn_removeProject");
@@ -207,6 +214,9 @@ class Project {
     $btnAddPiece.addEventListener("click", () => addPiece(this));
   }
 
+  /**
+   * Remove the project
+   */
   remove() {
     this.getElement().remove();
     $projectWrapper.replaceChildren();
@@ -216,6 +226,12 @@ class Project {
 }
 
 class Piece {
+  /**
+   * Create an instance of Piece
+   * @param {number} n Incremental value for the id and the default name
+   * @param {number} idProject Id of the project of the piece
+   * @param {Piece=} piece Data of the piece if loaded
+   */
   constructor(n, idProject, piece) {
     this.id = n;
     this.name = `New Piece ${n++}`;
@@ -223,20 +239,31 @@ class Piece {
     this.photos = [];
     this.idProject = idProject;
 
-    // If project already exist, fill all values
+    // If piece already exist, fill all values
     piece & Object.assign(this, piece);
-    console.log("id", this.id);
   }
 
+  /**
+   * Update the name of the piece
+   * @param {string} name New name
+   */
   setName(name) {
     this.name = name;
     this.getElement().textContent = name;
   }
 
+  /**
+   * Update the description of the piece
+   * @param {string} desc New description
+   */
   setDesc(desc) {
     this.desc = desc;
   }
 
+  /**
+   * Create a list element with the name of the piece
+   * @returns {HTMLLiElement}
+   */
   createElement() {
     const $li = document.createElement("li");
     $li.setAttribute("piece-id", this.id);
@@ -246,10 +273,19 @@ class Piece {
     return $li;
   }
 
+  /**
+   * Returns the piece element from his id
+   * @returns {HTMLLiElement}
+   */
   getElement() {
     return document.querySelector(`[piece-id="${this.id}"]`);
   }
 
+  /**
+   * Recover the template of piece to create an element with the name and
+   * description of the piece.
+   * @returns {HTMLElement}
+   */
   getTemplate() {
     // Get the template content
     const template = $templates.piece.cloneNode(true).content;
@@ -261,12 +297,19 @@ class Piece {
     return template;
   }
 
+  /**
+   * Set the piece to active and show it in the right side of the page
+   */
   setActive() {
     const pieces = document.getElementById("pieces").childNodes;
     pieces.forEach((p) => p.classList.remove("active"));
     this.getElement().classList.add("active");
   }
 
+  /**
+   * Create all events for the piece
+   * @param {HTMLElement} wrapper 
+   */
   handleEvents(wrapper) {
     const $btnRemove = wrapper.querySelector("#btn_removePiece");
     const $title = wrapper.querySelector(".piece_name");
@@ -282,11 +325,12 @@ class Piece {
       this.setDesc(e.currentTarget.textContent)
     );
     $input.addEventListener("change", (e) => this.changeImages(e), false);
-    //   $form.addEventListener("submit", (e) => this.addPhotos(e));
     $form.addEventListener("submit", (e) => this.addPhotos(e));
   }
 
-  // Show the project in the right side
+  /**
+   * Show the project in the right side
+   */ 
   show() {
     this.setActive();
 
@@ -314,20 +358,25 @@ class Piece {
     document.dispatchEvent(eventProjectEdited);
   }
 
+  /**
+   * Called when the file input is changed
+   * @param {Event} e 
+   */
   changeImages(e) {
-    const allowedTypes = ["png", "jpg", "jpeg", "gif"];
-    Array.from(e.target.files).forEach((f) => {
-      const extension = f.name.split(".").pop();
-      if (allowedTypes.includes(extension)) {
-        this.createThumbnail(f);
+    Array.from(e.target.files).forEach((file) => {
+      // On s'assure que `file.name` termine par 
+      // une des extensions souhaitées
+      if (/\.(jpe?g|png|gif)$/i.test(file.name)) {
+        this.createThumbnail(file);
       }
     });
   }
 
   /**
    * Create a thumbnail from a file input
+   * @param {File} file
    */
-  createThumbnail(f) {
+  createThumbnail(file) {
     const preview = document.querySelector(".preview_files");
     const reader = new FileReader();
     reader.addEventListener("load", () => {
@@ -335,24 +384,31 @@ class Piece {
       img.src = reader.result;
       preview.appendChild(img);
     });
-    reader.readAsDataURL(f);
+    reader.readAsDataURL(file);
   }
 
   /**
    * Create a thumbnail from a blob data
+   * @param {Blob} src
    */
   createThumbnailFromBlob(src) {
+    console.log(src)
     const preview = document.querySelector(".preview_files");
     const img = document.createElement("img");
     img.src = src;
     preview.appendChild(img);
   }
 
-  showThumbnail(f) {
-    const preview = document.querySelector(".preview_files");
+  /**
+   * Show all the thumbnails of the piece
+   */
+  showThumbnail() {
     this.photos.forEach((src) => this.createThumbnailFromBlob(src));
   }
 
+  /**
+   * Remove the piece of the project
+   */
   remove() {
     this.getElement().remove();
     document.getElementById("piece").replaceChildren();
@@ -360,7 +416,6 @@ class Piece {
     const project = oProjects.projects.find((p) => p.id === this.idProject);
     project.removePiece(this.id);
     project.showLastPiece();
-    // document.dispatchEvent(eventProjectEdited);
   }
 }
 
@@ -369,12 +424,14 @@ let n = 1;
 /** @type {Project[]} */
 let data = loadProjects();
 
+// Observable to detect when the projects has changed
 const oProjects = ObservableSlim.create(
   { projects: [], n },
   true,
   saveProjects
 );
 
+// Add all projects of data
 data.map(addProject);
 
 $btnAddProject.addEventListener("click", addProject);
